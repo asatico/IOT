@@ -1,0 +1,108 @@
+#include <LiquidCrystal.h>
+
+#define SENSOR_1_TRGG A0
+#define SENSOR_1_ECHO A1
+
+#define SENSOR_2_TRGG A2
+#define SENSOR_2_ECHO A3
+
+#define SENSOR_3_TRGG A4
+#define SENSOR_3_ECHO A5
+
+#define BUZZER 4
+
+#define RGB_RED_PIN 5
+#define RGB_GREEN_PIN 6
+#define RGB_BLUE_PIN 7
+
+#define MIN_DIST 8
+
+LiquidCrystal lcd(8, 9, 10, 11, 12, 13);
+
+short is_on_sensor = 0;
+
+void setup() {
+  Serial.begin(4800);
+  lcd.begin(16, 2);
+
+  pinMode(RGB_RED_PIN, OUTPUT);
+  pinMode(RGB_GREEN_PIN, OUTPUT);
+  pinMode(RGB_BLUE_PIN, OUTPUT);
+
+  pinMode(BUZZER, OUTPUT);
+}
+
+long getSensorDistance(int trgg, int echo) {
+  pinMode(trgg, OUTPUT);
+  digitalWrite(trgg, HIGH);
+  delay(2);
+  digitalWrite(trgg, LOW);
+  pinMode(echo, INPUT);
+  return pulseIn(echo, HIGH) / 58.24;
+}
+
+void LEDColor(int color) {
+  if (!color) {
+    digitalWrite(RGB_RED_PIN, LOW);
+    digitalWrite(RGB_GREEN_PIN, LOW);
+    digitalWrite(RGB_BLUE_PIN, LOW);
+  }
+
+  if (color == 1) {
+    digitalWrite(RGB_RED_PIN, HIGH);
+    digitalWrite(RGB_GREEN_PIN, LOW);
+    digitalWrite(RGB_BLUE_PIN, LOW);
+  } else if (color == 2) {
+    digitalWrite(RGB_RED_PIN, LOW);
+    digitalWrite(RGB_GREEN_PIN, HIGH);
+    digitalWrite(RGB_BLUE_PIN, LOW);
+  } else if (color == 3) {
+    digitalWrite(RGB_RED_PIN, LOW);
+    digitalWrite(RGB_GREEN_PIN, LOW);
+    digitalWrite(RGB_BLUE_PIN, HIGH);
+  }
+}
+
+void loop() {
+  long dist_1 = getSensorDistance(SENSOR_1_TRGG, SENSOR_1_ECHO),
+       dist_2 = getSensorDistance(SENSOR_2_TRGG, SENSOR_2_ECHO),
+       dist_3 = getSensorDistance(SENSOR_3_TRGG, SENSOR_3_ECHO);
+
+  Serial.println(dist_1);
+  Serial.println(dist_2);
+  Serial.println(dist_3);
+
+  lcd.clear();
+  // lcd.setCursor(0, 0);
+  if (dist_1 < MIN_DIST && !is_on_sensor) {
+    LEDColor(1);
+    lcd.print("PLASTICO");
+    lcd.setCursor(0, 1);
+    lcd.print("PLASTIC");
+    tone(BUZZER, 262);
+    is_on_sensor = 1;
+    delay(1500);
+  } else if (dist_2 < MIN_DIST && !is_on_sensor) {
+    LEDColor(2);
+    lcd.print("VIDRO");
+    lcd.setCursor(0, 1);
+    lcd.print("GLASS");
+    tone(BUZZER, 294);
+    is_on_sensor = 1;
+    delay(1500);
+  } else if (dist_3 < MIN_DIST && !is_on_sensor) {
+    LEDColor(3);
+    lcd.print("PAPEL");
+    lcd.setCursor(0, 1);
+    lcd.print("PAPER");
+    tone(BUZZER, 330);
+    is_on_sensor = 1;
+    delay(1500);
+  } else {
+    LEDColor(0);
+    noTone(BUZZER);
+    
+    if (dist_1 > MIN_DIST && dist_2 > MIN_DIST && dist_3 > MIN_DIST)
+      is_on_sensor = 0;
+  }
+}
